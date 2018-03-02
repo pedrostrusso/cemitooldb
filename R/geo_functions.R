@@ -1,5 +1,5 @@
 #' @import GEOquery 
-#'
+#' @import Biobase
 NULL
 
 #' Run CEMiTool
@@ -31,7 +31,7 @@ run_cemitool <- function(expression, output_dir, study_id, annotation, interacti
 #'
 #' This function is used to get the GEO accession numbers of all studies in a platform.
 #'
-#' @param gpl The ID of the platform of interest
+#' @param gpl_id The ID of the platform of interest
 #'
 #' @rdname get_platform_gse_ids
 #' @export
@@ -47,7 +47,7 @@ get_platform_gse_ids <- function(gpl_id){
 #' 
 #' This function is used to query GEO and extract expression data of a 
 #' study using the accession number as ID.
-#' @param gse_id
+#' @param gse_id The GEO accession ID for the study
 #'
 #' @rdname get_expr_from_gse
 #' @export
@@ -57,8 +57,8 @@ get_expr_from_gse <- function(gse_id){
     if(length(gse) > 1){
         return(NULL)
     }else{
-        expr <- as.data.frame(exprs(gse[[1]]))
-        expr$GeneSymbol <- GEOquery::fData(gse[[1]])[["Gene Symbol"]]
+        expr <- as.data.frame(Biobase::exprs(gse[[1]]))
+        expr$GeneSymbol <- Biobase::fData(gse[[1]])[["Gene Symbol"]]
         return(expr)
     }
 }
@@ -81,3 +81,5 @@ get_sample_number_studies <- function(expr_list, min_samples, max_samples){
     list_condition <- sapply(expr_list, function(x) ncol(x)-1 >= min_samples & ncol(x)-1 <= max_samples)
     output_list <- expr_list[list_condition]        
 }
+
+
