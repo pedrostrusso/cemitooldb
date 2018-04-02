@@ -2,14 +2,14 @@
 % Please edit documentation in R/geo_functions.R
 \name{get_expr_from_gse}
 \alias{get_expr_from_gse}
-\title{Get expression data from GEO using the study's GSE accession number}
+\title{Get expression data from a GSE object}
 \usage{
-get_expr_from_gse(gse_id)
+get_expr_from_gse(gse)
 }
 \arguments{
-\item{gse_id}{The GEO accession ID for the study}
+\item{gse}{The GSE object}
 }
 \description{
-This function is used to query GEO and extract expression data of a 
-study using the accession number as ID.
+This function is used to extract expression data of a 
+GSE object as given by get_gse.
 }

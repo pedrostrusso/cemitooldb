@@ -83,7 +83,7 @@ get_expr_from_gse <- function(gse){
 #' 
 #' The function tries to see which 
 #' columns in the data provide information about each sample. 
-#' @param gse_id The GEO accession ID for the study
+#' @param gse The GSE object for the study
 #'
 #' @rdname get_annot_from_gse
 #' @export
