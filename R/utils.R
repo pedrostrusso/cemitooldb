@@ -89,6 +89,12 @@ collapse_list <- function(expr_list){
     return(collapsed_list)
 }
 
+#' This function processes and collapses expression data
+#' 
+#' @param expr An expression file
+#' 
+#' @keywords internal
+#' @noRd
 .process_and_collapse <- function(expr){
     genes <- as.character(expr$GeneSymbol)
     # Remove " /// " from composite gene names and keep the first
