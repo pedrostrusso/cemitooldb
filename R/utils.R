@@ -57,3 +57,81 @@ collapse_rows <- function(expr, probe_col, gene_col, data_table=FALSE,
         return(data.frame(res))
     }else{ return(res[]) }
 }
+
+#' Collapse studies in a list
+#'
+#' This function takes a list of expression data and applies the collapse_rows function
+#'
+#' @param expr_list A list with expression data elements
+#'
+#' @return A list with collapsed expression data
+#'
+#' @rdname collapse_list
+#' @export
+collapse_list <- function(expr_list){
+    collapsed_list <- lapply(expr_list, function(expression){
+        expression <- expression[!expression$GeneSymbol=="", ] 
+        # Remove " /// " from composite gene names and keep the first
+        expression$GeneSymbol  <- sapply(expression$GeneSymbol, function(x) {
+                                         strsplit(x, split=" /// ")[[1]][1]
+                                         })
+        col <- collapse_rows(expression, 
+                             probe_col = "rownames", 
+                             gene_col="GeneSymbol", 
+                             method="max_mean")    
+                                         
+        rownames(col) <- col$GeneSymbol
+        col$GeneSymbol <- NULL
+        col$rownames <- NULL
+        col
+    })
+    names(collapsed_list) <- names(expr_list)
+    return(collapsed_list)
+}
+
+.process_and_collapse <- function(expr){
+    genes <- as.character(expr$GeneSymbol)
+    # Remove " /// " from composite gene names and keep the first
+    genes <- sapply(genes, function(x) {
+        strsplit(x, split=" /// ")[[1]][1]
+    })
+    
+    probes <- rownames(expr)
+    names <- names(expr)
+    
+    expr <- apply(expr[, 1:ncol(expr)-1], 2, function(f){
+        as.numeric(as.character(f))
+    })
+    expr <- as.data.frame(expr)
+    #expr <- as.data.frame(cbind(expr, genes), stringsAsFactors=FALSE)
+    expr$GeneSymbol <- genes
+    
+    names(expr) <- names
+    rownames(expr) <- probes
+    expr <- expr[!is.na(expr$GeneSymbol), ]
+    
+    collapsed <- collapse_rows(expr, probe_col = "rownames", gene_col="GeneSymbol")
+    rownames(collapsed) <- collapsed$GeneSymbol
+    collapsed$GeneSymbol <- NULL
+    collapsed$rownames <- NULL
+    
+    return(collapsed)
+}
+
+
+annotate_studies <- function(annot){
+    
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
