@@ -1,89 +1,45 @@
-#annot0 <- annot
-#annot0 -> annot
-.get_desc_list <- function(annot){
-    bad_columns <- c("^status$", "submission_date", "last_update_date", "^type$", "channel_count",
-                     "label_protocol_ch1", "taxid_ch1", "hyb_protocol", "scan_protocol",
-                     "description", "data_processing", "contact_*", "supplementary_file*", 
-                     "data_row_count", "relation")
+
+make_gds_annot <- function(gds){
+    eset <- GEOquery::GDS2eSet(gds)
+    annot <- pData(phenoData(eset))
+    annot$sample <- NULL
+    annot <- select_class(annot)
+    annot$SampleName <- rownames(annot)
     
-    bad_inds <- sapply(bad_columns, function(column){
-        grep(column, names(annot))
-    })
-    bad_inds <- unlist(bad_inds)
-    annot <- annot[, -bad_inds]
+    return(annot)
+}
+
+select_class <- function(annot){
+    priority_list <- c("disease.state", "protocol", "agent", "genotype/variation")
     
-    col_names <- names(annot)
-    desc_list <- lapply(col_names, function(col_name){
-        #i <- which(col_names == col_name)
-        
-        column <- annot[, col_name]
-        
-        if(is.factor(column)){
-            column <- levels(column)[column]
-        }
-        #message(c(i, ") ", col_name, " :"))
-        res <- paste(unique(column), collapse=" ")
-        #print(res)
-        res
-    })
-    names(desc_list) <- col_names
-    return(desc_list)
-}
-
-.show_list <- function(desc_list){
-    col_names <- names(desc_list)
-    bla <- lapply(col_names, function(col_name){
-        i <- which(col_names == col_name)
-        
-        column <- desc_list[[col_name]]
-        
-        #if(is.factor(column)){
-        #    column <- levels(column)[column]
-        #}
-        message(c(i, ") ", col_name, " :"))
-        res <- paste(unique(column), collapse=" ")
-        print(res)
-        #res
-    })
-}
-
-.read_selection <- function(){
-    n <- readline(prompt="Select number of column to be used as class:")
-    if(!is.na(as.numeric(x))){
-        print(n)
-    }else if(n == "NA"){
-        
-    }
-}
-
-annotate_studies <- function(annot){
-    desc_list <- .get_desc_list(annot)
-    .show_list(desc_list)
-}
-
-column_hist <- function(study_folder){
-    study_columns <- sapply(list.files(study_folder), function(folder){
-        print(folder)
-        tryCatch(
-            annot <- data.table::fread(file.path(study_folder, 
-                                             folder, 
-                                             paste0(folder, "_annotation.tsv")), 
-                                   data.table=FALSE), 
-            error=function(e){
-                unlink(folder, recursive=TRUE)
+    if(any(priority_list %in% names(annot))){
+        for(col_name in priority_list){
+            if(col_name %in% names(annot)){
+                annot <- dplyr::rename(annot, "Class" = col_name)
+                break
             }
-        )
-        colnames(annot)
-    })
-    names(study_columns) <- list.files(study_folder)
+        }    
+    }else{
+        if(ncol(annot) > 2){
+            # se numero de colunas for maior que dois, pegar a primeira coluna desde que nao seja "individual"
+            if(names(annot[, 1, drop=FALSE]) == "individual"){
+                annot <- dplyr::rename(annot, "Class" = names(annot[, 2, drop=FALSE]))
+            }else{
+                annot <- dplyr::rename(annot, "Class" = names(annot[, 1, drop=FALSE]))
+            }
+        }else{
+            annot <- dplyr::rename(annot, "Class" = names(annot[, 1, drop=FALSE]))
+        }
+    }
+    return(annot)
 }
 
-
-
-
-
-
-
-
-
-
+make_gse_annot <- function(gse){
+    annot <- data.frame("Sample_geo_accession"=gse[[1]]$geo_accession,
+                        "Sample_title"=gse[[1]]$title,
+                        "Sample_source_name_ch1"=gse[[1]]$source_name_ch1)
+    tmp <- pData(phenoData(gse[[1]]))
+    tmp <- tmp[, grepl("characteristics_ch1*", names(tmp))]
+    annot$Sample_characteristics_ch1 <- Reduce(function(x, y) paste(x, y, sep="; "), tmp)
+    return(annot)
+}

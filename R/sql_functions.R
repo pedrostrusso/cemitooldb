@@ -19,18 +19,19 @@ NULL
 #' 
 #' @rdname insert_study_info
 #' @export
-insert_study_info <- function(study_id, disease, keywords, platform, organism){
+insert_study_info <- function(study, disease, keywords, platform, organism, 
+                              user, password, dbname, host="127.0.0.1"){
     con <- RMySQL::dbConnect(RMySQL::MySQL(),
-                     user="prusso", 
-                     password=getPass::getPass(),
-                     dbname="cemitooldb",
-                     host="127.0.0.1")
+                     user=user, 
+                     password=password,
+                     dbname=dbname,
+                     host=host)
     on.exit(RMySQL::dbDisconnect(con))
     
-    sql <- sprintf("INSERT INTO cemitool_run (studyID, Disease, Keywords, Platform, Organism) 
+    sql <- sprintf("INSERT INTO study_info (study, disease, keywords, platform, organism) 
                    VALUES ('%s', '%s', '%s', '%s', '%s');",
-                   study_id, disease, keywords, platform, organism)
-    sql <- gsub(pattern='\\s', replacement="", x=sql)
+                   study, disease, keywords, platform, organism)
+    sql <- gsub(pattern='\\s{2}', replacement="", x=sql)
     rs <- RMySQL::dbSendQuery(con, sql)
     RMySQL::dbClearResult(rs)
     id <- DBI::dbGetQuery(con, "select last_insert_id();")[1,1]
@@ -55,7 +56,7 @@ insert_run <- function(study_id, date, results, plots, reports){
     con <- RMySQL::dbConnect(MySQL(),
                      user="prusso", 
                      password=getPass(),
-                     dbname="cemitooldb",
+                     dbname="cemitooldb2",
                      host="127.0.0.1")
     on.exit(RMySQL::dbDisconnect(con))
     

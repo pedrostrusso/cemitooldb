@@ -2,31 +2,6 @@
 #' @import Biobase
 NULL
 
-#' Run CEMiTool
-#' 
-#' This function is used to run the CEMiTool.R script included in the CEMiTool package.
-#'
-#' @param expression The name of the expression file to be analyzed 
-#' @param output_dir The name of the folder to output the results
-#' @param study_id The GEO accession number (GSE) of the study
-#' @param annotation The name of the sample annotation file
-#' @param interactions The name of the interactions file 
-#' @param gmt_fname The name of the gmt file
-#'
-#' @rdname run_cemitool
-#' @export
-run_cemitool <- function(expression, output_dir, study_id, annotation, interactions, gmt_fname){
-    system(
-        paste("Rscript ./src/CEMiTool.R", 
-              expression, 
-              "-o", file.path(output_dir, study_id),
-              "-s", annotation,
-              "-i", interactions,
-              "-p", gmt_fname,
-              "-v")
-    )
-}
-
 #' Get platform GSE ids
 #'
 #' This function is used to get the GEO accession numbers of all studies in a platform.
@@ -40,6 +15,111 @@ get_platform_gse_ids <- function(gpl_id){
     gpl <- GEOquery::getGEO(gpl_id)
     gpl_studies <- GEOquery::Meta(gpl)$series_id
     return(gpl_studies)
+}
+
+#' Get platform GSE ids which have entries in GEO datasets
+#' 
+#' This function is used to get the GEO accession numbers of studies of a given 
+#' platform which have an entry in GEO datasets.
+#' 
+#' @param gpl_id The ID of the platform of interest
+#' 
+#' @rdname get_gds_gse_ids
+#' @export
+get_gds_gse_ids <- function(gpl_id){
+    gds_search <- rentrez::entrez_search(db="gds", term=paste0(gpl_id, "[ACCN]", " AND gds[ETYP]"), 
+                                         use_history = TRUE)
+    study_count <- gds_search$count
+    
+    gse_id_vec <- c()
+    
+    for(seq_start in seq(0, study_count, 50)){
+        message(seq_start)
+        search_res <- rentrez::entrez_search(db="gds", term=paste0(gpl_id, "[ACCN]", " AND gds[ETYP]"), 
+                                             use_history = TRUE,
+                                             retmax=50, retstart=seq_start)
+        print(search_res$ids)
+        #id_vec <- c(id_vec, search_res$ids)
+        
+        res <- entrez_summary(db="gds", id=search_res$ids)
+        gse_id_vec <- c(gse_id_vec, paste0("GSE", res[[1]]$gse))
+        gse_id_vec <- c(gse_id_vec, unlist(lapply(res, function(x) paste0("GSE", x$gse))))
+    }
+    #id_vec <- unlist(id_vec)
+    return(gse_id_vec)
+}
+
+
+#' Get GDS ids whose related studies are in the given platform
+#' 
+#' @param gpl_id The ID of the platform of interest
+#' 
+#' @rdname get_gds_gse_ids
+#' @export
+get_gpl_related_gds <- function(gpl_id, min_sample_num=NULL, max_sample_num=NULL){
+    gds_search <- rentrez::entrez_search(db="gds", term=paste0(gpl_id, "[ACCN]", " AND gds[ETYP]"), 
+                                         use_history = TRUE)
+    study_count <- gds_search$count
+    
+    id_vec <- c()
+    
+    for(seq_start in seq(0, study_count, 50)){
+        search_res <- rentrez::entrez_search(db="gds", term=paste0(gpl_id, "[ACCN]", " AND gds[ETYP]"), 
+                                             use_history = TRUE,
+                                             retmax=50, retstart=seq_start)
+        res_ids <- search_res$ids
+        
+        if(!is.null(min_sample_num) | !is.null(max_sample_num)){
+            for(id in res_ids){
+                summary_res <- rentrez::entrez_summary(db="gds", id=id)
+                if(summary_res$n_samples <= min_sample_num | summary_res$n_samples >= max_sample_num){
+                    res_ids <- setdiff(res_ids, id)
+                }
+            }
+        }
+        
+        id_vec <- c(id_vec, res_ids)
+        #res <- entrez_summary(db="gds", id=search_res$ids)
+    }
+    id_vec <- unlist(id_vec)
+    id_vec <- paste0("GDS", id_vec)
+    return(id_vec)
+}
+
+
+#' Get GSE object from GEO using the study GSE accession number
+#'
+#' This function is a wrapper function for getGEO, in which it will 
+#' download GDS data.
+#' @param gse_id The GEO accession ID for the study
+#'
+#' @rdname get_gse
+#' @export
+get_gds <- function(gds_id){
+    gds <- GEOquery::getGEO(gds_id)
+}
+
+#' Get expression data from a GDS object
+#' 
+#' This function is used to extract expression data of a 
+#' GDS object as given by get_gds.
+#' @param gds The GDS object
+#' @param do_log2 Whether or not to apply log2 transformation on the data
+#' (Default: TRUE)
+#'
+#' @rdname get_expr_from_gds
+#' @export
+
+get_expr_from_gds <- function(gds, do_log2=TRUE){
+    eset <- GEOquery::GDS2eSet(gds, do.log2=do_log2)
+    expr <- as.data.frame(Biobase::exprs(eset))
+    if(nrow(expr) > 0){
+        expr$GeneSymbol <- Biobase::fData(eset)[["Gene symbol"]]
+        return(expr)
+    }else{
+        return(NULL)
+    }
+    return(expr)
 }
 
 #' Get GSE object from GEO using the study GSE accession number
