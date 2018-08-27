@@ -54,7 +54,7 @@ get_gds_gse_ids <- function(gpl_id){
 #' 
 #' @param gpl_id The ID of the platform of interest
 #' 
-#' @rdname get_gds_gse_ids
+#' @rdname get_gpl_related_ids
 #' @export
 get_gpl_related_gds <- function(gpl_id, min_sample_num=NULL, max_sample_num=NULL, verbose=FALSE){
     gds_search <- rentrez::entrez_search(db="gds", term=paste0(gpl_id, "[ACCN]", " AND gds[ETYP]"), 
@@ -115,7 +115,7 @@ get_expr_from_gds <- function(gds, do_log2=TRUE){
     eset <- GEOquery::GDS2eSet(gds, do.log2=do_log2)
     expr <- as.data.frame(Biobase::exprs(eset))
     if(nrow(expr) > 0){
-        expr$GeneSymbol <- Biobase::fData(eset)[["Gene symbol"]]
+        expr$GeneSymbol <- Biobase::fData(eset)[[3]]
         return(expr)
     }else{
         return(NULL)

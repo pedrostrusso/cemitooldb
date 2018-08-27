@@ -22,7 +22,12 @@ scrape_study_info <- function(gds_id){
     }
     
     study_info <- list(title, summary, platform, organism, pubmedid, keywords)
+    study_info <- lapply(study_info, function(x) gsub("'s", "", x))
+    study_info <- lapply(study_info, function(x) gsub("'", "", x))
+    study_info <- lapply(study_info, function(x) gsub('"', "", x))
+    
     names(study_info) <- c("title", "summary", "platform", "organism", "pubmedid", "keywords")
+    
     return(study_info)
 }
 

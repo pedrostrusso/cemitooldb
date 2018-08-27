@@ -1,6 +1,9 @@
+library(GEOquery)
+library(Biobase)
 library(CEMiTool)
 library(data.table)
 library(RMySQL)
+library(pool)
 library(plyr)
 library(rentrez)
 library(XML)
@@ -17,6 +20,12 @@ p <- list()
 p$interactions <- int_df
 p$gmt <- gmt_in
 
+#gds_studies0 <- gds_studies
+gds_studies <- gds_studies0
+remove_studies <- dir("~/Documents/CSBL/new_database/intermediate/CEMiTool/")
+keep <- setdiff(gds_studies, remove_studies)
+gds_studies <- keep
+
 studies_to_db <- function(user_data,
                           gpl_id, 
                           min_sample_num=18, max_sample_num=200, 
@@ -28,6 +37,12 @@ studies_to_db <- function(user_data,
     message("Getting studies for ", gpl_id)
     gds_studies <- get_gpl_related_gds(gpl_id, min_sample_num=min_sample_num, 
                                        max_sample_num=max_sample_num, verbose=TRUE)
+    
+    pool <- pool::dbPool(drv=RMySQL::MySQL(), 
+                         dbname=user_data$dbname, 
+                         host=user_data$host, 
+                         user=user_data$user,
+                         password=user_data$password)
     
     for(gds_id in gds_studies){
         
@@ -61,7 +76,7 @@ studies_to_db <- function(user_data,
         
         if(!is.null(cem)){
             if(verbose) message("Populating MySQL database")
-            populate_sql(gds_id, user_data, run_date, cem)    
+            populate_sql(pool=pool, gds_id=gds_id, user_data=user_data, run_date=run_date, cem=cem)    
         }
     }
 }
