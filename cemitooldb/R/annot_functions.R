@@ -31,6 +31,7 @@ select_class <- function(annot){
             annot <- dplyr::rename(annot, "Class" = names(annot[, 1, drop=FALSE]))
         }
     }
+    annot$Class <- gsub("'", "", annot$Class)
     return(annot)
 }
 
